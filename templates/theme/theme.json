@@ -1,0 +1,24 @@
+{
+  "light": {
+    "--gray-hue": "60",
+    "--gray-chroma": "0.01",
+    "--color-accent": "oklch(52% 0.17 45)",
+    "--color-accent-solid": "oklch(52% 0.17 45)",
+    "--color-bg": "oklch(95% 0.01 60)",
+    "--color-surface": "oklch(97.5% 0.008 60)",
+    "--color-fg": "oklch(24% 0.02 60)",
+    "--color-fg-muted": "oklch(45% 0.02 60)",
+    "--radius-md": "10px"
+  },
+  "dark": {
+    "--gray-hue": "60",
+    "--gray-chroma": "0.01",
+    "--color-accent": "oklch(72% 0.15 45)",
+    "--color-accent-solid": "oklch(60% 0.17 45)",
+    "--color-bg": "oklch(17% 0.01 60)",
+    "--color-surface": "oklch(21% 0.012 60)",
+    "--color-fg": "oklch(94% 0.01 60)",
+    "--color-fg-muted": "oklch(72% 0.015 60)",
+    "--radius-md": "10px"
+  }
+}

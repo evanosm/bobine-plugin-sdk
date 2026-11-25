@@ -1,0 +1,13 @@
+{
+  "id": "{{id}}",
+  "kind": "theme",
+  "name": { "en": "{{name}}", "fr": "{{name}}" },
+  "description": {
+    "en": "Warm accent and soft grays, in light and dark.",
+    "fr": "Accent chaud et gris doux, en clair et en sombre."
+  },
+  "author": "",
+  "version": "0.1.0",
+  "api": "1",
+  "theme": "theme.json"
+}

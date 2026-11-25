@@ -1,0 +1,13 @@
+{
+  "id": "{{id}}",
+  "kind": "skill",
+  "name": { "en": "{{name}}", "fr": "{{name}}" },
+  "description": {
+    "en": "Editing instructions for Bob: short shots, cuts on the beat.",
+    "fr": "Consignes de montage pour Bob : plans courts, coupes sur le rythme."
+  },
+  "author": "",
+  "version": "0.1.0",
+  "api": "1",
+  "skill": "skill.md"
+}

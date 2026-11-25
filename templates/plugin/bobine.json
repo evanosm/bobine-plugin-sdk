@@ -1,0 +1,22 @@
+{
+  "id": "{{id}}",
+  "kind": "plugin",
+  "name": { "en": "{{name}}", "fr": "{{name}}" },
+  "description": {
+    "en": "Says hello and counts the clips of the sequence.",
+    "fr": "Dit bonjour et compte les clips de la séquence."
+  },
+  "author": "",
+  "version": "0.1.0",
+  "api": "1",
+  "permissions": ["project:read"],
+  "contributes": {
+    "commands": [{ "id": "hello", "title": { "en": "Say hello", "fr": "Dire bonjour" } }],
+    "menus": { "plugins": ["hello"] },
+    "panels": [
+      { "id": "main", "title": { "en": "{{name}}", "fr": "{{name}}" }, "where": "library" }
+    ]
+  },
+  "main": "dist/main.js",
+  "ui": "dist/panel.html"
+}

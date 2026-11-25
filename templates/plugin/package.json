@@ -1,0 +1,19 @@
+{
+  "name": "{{slug}}",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "check": "bobine-plugin check",
+    "package": "node build.mjs && bobine-plugin pack",
+    "dev": "bobine-plugin dev"
+  },
+  "devDependencies": {
+    "bobine-plugin-sdk": "{{sdk}}",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}

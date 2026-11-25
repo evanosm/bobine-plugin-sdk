@@ -1,0 +1,24 @@
+/* Colors come from Bobine's theme (applyTheme); the fallbacks only show outside Bobine. */
+body {
+  margin: 0;
+  padding: 8px 16px 16px;
+  color: var(--color-fg, #eee);
+  font:
+    14px / 1.4 -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+p {
+  color: var(--color-fg-muted, #999);
+}
+button {
+  width: 100%;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-accent-solid, #d33);
+  color: var(--color-accent-fg, #fff);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
