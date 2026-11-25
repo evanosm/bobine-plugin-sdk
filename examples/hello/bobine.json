@@ -1,0 +1,43 @@
+{
+  "id": "genez.hello",
+  "kind": "plugin",
+  "name": { "en": "Hello", "fr": "Bonjour" },
+  "description": {
+    "en": "SDK example: says hello, and proposes a marker every few seconds along the sequence.",
+    "fr": "Exemple du SDK : dit bonjour et propose un repère toutes les quelques secondes sur la séquence."
+  },
+  "author": "Genez",
+  "version": "1.0.0",
+  "api": "1",
+  "permissions": ["project:read", "project:write"],
+  "contributes": {
+    "commands": [
+      { "id": "hello", "title": { "en": "Say hello", "fr": "Dire bonjour" } },
+      {
+        "id": "markers",
+        "title": { "en": "Propose regular markers", "fr": "Proposer des repères réguliers" }
+      }
+    ],
+    "menus": { "plugins": ["hello", "markers"], "timeline": ["markers"] },
+    "settings": [
+      {
+        "type": "number",
+        "id": "every",
+        "label": { "en": "Seconds between markers", "fr": "Secondes entre deux repères" },
+        "default": 10,
+        "min": 1,
+        "max": 600
+      },
+      {
+        "type": "choice",
+        "id": "color",
+        "label": { "en": "Marker color", "fr": "Couleur des repères" },
+        "default": "blue",
+        "choices": ["blue", "green", "yellow", "orange", "red", "purple"]
+      }
+    ],
+    "panels": [{ "id": "summary", "title": { "en": "Hello", "fr": "Bonjour" }, "where": "library" }]
+  },
+  "main": "dist/main.js",
+  "ui": "dist/panel.html"
+}
