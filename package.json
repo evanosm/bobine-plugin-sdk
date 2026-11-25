@@ -1,0 +1,57 @@
+{
+  "name": "bobine-plugin-sdk",
+  "version": "0.1.0",
+  "description": "SDK et CLI pour écrire des plugins, thèmes et skills pour Bobine, l'éditeur vidéo de Genez.",
+  "keywords": [
+    "bobine",
+    "plugin",
+    "sdk",
+    "video-editor",
+    "genez"
+  ],
+  "license": "MIT",
+  "author": "Genez",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evanosm/bobine-plugin-sdk.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./iife": "./dist/bobine-plugin-sdk.iife.js",
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "bobine-plugin": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "schema"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "generate": "node scripts/generate-types.mjs",
+    "generate:check": "node scripts/generate-types.mjs --check",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.9",
+    "@types/node": "26.6.7",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.1"
+  }
+}

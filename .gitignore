@@ -1,0 +1,4 @@
+node_modules/
+dist/
+*.bobine-ext
+.DS_Store
