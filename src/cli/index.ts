@@ -4,12 +4,27 @@
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
+import { accountConfig, login, logout, sessionPath } from "./account";
 import { create, defaultSdkSpec, sdkRoot } from "./create";
 import { buildScript, packageManager, runBuild, watchAndBuild } from "./dev";
 import { type Kind, type Manifest, ManifestError, parsePermission } from "./manifest";
 import { pack } from "./pack";
 import { checkDir, PackageError } from "./package";
+import { catalogUrl, publishFolder } from "./publish";
+
+const log = (line: string) => console.log(line);
+
+/** Questions posées dans le terminal, le temps de `run`. */
+async function withPrompt<T>(run: (ask: (q: string) => Promise<string>) => Promise<T>): Promise<T> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return await run((question) => rl.question(question));
+  } finally {
+    rl.close();
+  }
+}
 
 const HELP = `bobine-plugin: build extensions for Bobine
 
@@ -19,7 +34,13 @@ Usage:
   bobine-plugin pack [folder] [--out <file>]
                                         check, then write <id>-<version>.bobine-ext
   bobine-plugin dev [folder]            how to load the folder in Bobine; rebuild on change
-  bobine-plugin publish                 not available yet (marketplace)
+  bobine-plugin login                   log in to your Bobine account (code by email)
+  bobine-plugin logout                  forget the saved session
+  bobine-plugin publish [folder] [--yes] [--out <file>]
+                                        check, pack and publish to the Bobine marketplace
+
+Environment: BOBINE_SUPABASE_URL, BOBINE_SUPABASE_ANON_KEY, BOBINE_API_URL override
+the account server and the marketplace API.
 
 Options:
   -h, --help       show this help
@@ -95,6 +116,7 @@ async function main(argv: string[]): Promise<number> {
       id: { type: "string" },
       sdk: { type: "string" },
       out: { type: "string" },
+      yes: { type: "boolean", short: "y" },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
     },
@@ -164,15 +186,55 @@ async function main(argv: string[]): Promise<number> {
     }
     case "dev":
       return dev(dir);
-    case "publish":
-      console.log(
-        "Publishing is not available yet: it arrives with the Bobine marketplace.\n" +
-          "Until then, a theme or a skill can be shared as the archive made by\n" +
-          "`bobine-plugin pack` (Bobine installs it, marked as not verified).\n" +
-          "A plugin needs the marketplace signature: without it, Bobine only loads\n" +
-          "it in developer mode (Plugins > Load an extension in development...).",
-      );
+    case "login":
+      try {
+        await withPrompt((ask) =>
+          login({ cfg: accountConfig(), sessionFile: sessionPath(), fetchFn: fetch, ask, log }),
+        );
+        return 0;
+      } catch (error) {
+        console.error(`error: ${explain(error, dir)}`);
+        return 1;
+      }
+    case "logout": {
+      const had = await logout(accountConfig(), sessionPath(), fetch);
+      console.log(had ? "Logged out." : "You were not logged in.");
       return 0;
+    }
+    case "publish": {
+      const cfg = accountConfig();
+      try {
+        const published = await withPrompt((ask) =>
+          publishFolder(dir, {
+            cfg,
+            sessionFile: sessionPath(),
+            fetchFn: fetch,
+            log,
+            ...(values.out ? { out: values.out } : {}),
+            confirm: async (question) => {
+              if (values.yes) return true;
+              if (!process.stdin.isTTY) {
+                throw new Error("not a terminal: add --yes to confirm the publication");
+              }
+              return /^y(es)?$/i.test((await ask(question)).trim());
+            },
+          }),
+        );
+        if (!published) {
+          console.log("Cancelled: nothing was published.");
+          return 0;
+        }
+        console.log(
+          `Published ${published.id} ${published.version} (${published.size} bytes, sha256 ${published.sha256.slice(0, 12)}).` +
+            `\nCatalog entry: ${catalogUrl(cfg, published.id)}` +
+            "\nIn Bobine: Plugins > Browse extensions...",
+        );
+        return 0;
+      } catch (error) {
+        console.error(`error: ${explain(error, dir)}`);
+        return 1;
+      }
+    }
     default:
       console.error(`error: unknown command \`${command}\`\n\n${HELP}`);
       return 1;

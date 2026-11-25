@@ -4,8 +4,8 @@ Le kit pour écrire des extensions de [Bobine](https://genez.app/bobine), l'édi
 TypeScript typé pour parler à Bobine depuis un plugin, et une CLI `bobine-plugin` qui crée, vérifie et empaquette ton
 extension.
 
-> **État** : version 0.1, pas encore publiée sur npm. Elle suit l'API de plugin « 1 » de Bobine. La marketplace n'est
-> pas encore ouverte : `bobine-plugin publish` le dit et s'arrête là.
+> **État** : version 0.1, pas encore publiée sur npm. Elle suit l'API de plugin « 1 » de Bobine.
+> `bobine-plugin publish` publie sur la marketplace de Bobine (extensions gratuites).
 
 ## Ce qu'est une extension Bobine
 
@@ -210,7 +210,9 @@ bobine-plugin create <dossier> [--kind plugin|theme|skill] [--id auteur.nom] [--
 bobine-plugin check [dossier]
 bobine-plugin pack [dossier] [--out <fichier>]
 bobine-plugin dev [dossier]
-bobine-plugin publish
+bobine-plugin login
+bobine-plugin logout
+bobine-plugin publish [dossier] [--yes] [--out <fichier>]
 ```
 
 - `create` : un projet prêt à vérifier, avec `.github/workflows/bobine.yml` (vérification et archive à chaque push).
@@ -222,9 +224,51 @@ bobine-plugin publish
   y entre, sauf les fichiers cachés, `node_modules` et les archives `.bobine-ext`.
 - `dev` : construit (si le `package.json` a un script `build`), vérifie, explique comment charger le dossier dans
   Bobine, puis reconstruit à chaque changement.
-- `publish` : pas encore disponible. D'ici là, un thème ou un skill se partage en archive (Bobine l'installe en le
-  marquant « non vérifié »). Un plugin demande la signature de la marketplace : sans elle, Bobine ne le charge qu'en
-  mode développeur.
+- `login`, `logout`, `publish` : voir la section suivante.
+
+## Publier
+
+La marketplace de Bobine accepte les extensions gratuites. Il te faut un compte Bobine (celui de l'app).
+
+```sh
+bobine-plugin login       # ton e-mail, puis le code à 6 chiffres reçu par e-mail
+bobine-plugin publish     # dans le dossier de l'extension
+```
+
+- `login` ne crée pas de compte : avec un e-mail inconnu, la CLI te demande d'en créer un dans Bobine d'abord. La session
+  est gardée dans `~/.config/bobine-plugin/session.json` (ou `$XDG_CONFIG_HOME/bobine-plugin/`), lisible par toi seul,
+  et se rafraîchit toute seule quand elle expire. `logout` la révoque et efface le fichier.
+- `publish` lance `check` et `pack`, puis rappelle que la version sera publique et définitive, et demande de confirmer
+  (`--yes` pour ne pas demander). Le serveur re-signe l'archive avec la clé de la marketplace : c'est cette signature qui
+  permet d'installer un plugin hors du mode développeur.
+- Une version publiée ne change jamais. Pour corriger, monte `version` dans `bobine.json` et publie à nouveau.
+- Le premier compte qui publie un id en devient propriétaire : personne d'autre ne peut publier sous cet id.
+
+Les refus du serveur et ce que la CLI te dit de faire :
+
+| Réponse                  | Cause                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| `401`                    | Session expirée ou révoquée : `bobine-plugin login`                                  |
+| `403 account_suspended`  | Compte suspendu                                                                      |
+| `403 reserved_namespace` | Les ids `genez.*` et `bobine.*` sont réservés à Genez                                |
+| `403 native_not_allowed` | Les programmes natifs (`native`, `native:worker`) sont réservés aux plugins de Genez |
+| `403 not_owner`          | L'id appartient à un autre compte                                                    |
+| `409 version_exists`     | Cette version est déjà publiée                                                       |
+| `413`                    | Archive de plus de 50 Mo (la CLI le vérifie avant l'envoi)                           |
+| `429`                    | 20 publications par compte sur 24 heures au plus                                     |
+| `400 invalid_manifest`   | Le serveur refuse le paquet, avec le détail                                          |
+
+Une fois publiée, l'extension apparaît dans Bobine (**Plugins > Parcourir les extensions…**) et dans le catalogue public
+de l'API (`https://genez.app/api/v1/extensions/<id>`).
+
+Publie depuis ta machine, pas depuis la CI : la session Supabase change de jeton de rafraîchissement à chaque usage, un
+secret de CI deviendrait vite invalide. Le modèle de CI de `create` vérifie et empaquette seulement.
+
+Les variables `BOBINE_SUPABASE_URL`, `BOBINE_SUPABASE_ANON_KEY` et `BOBINE_API_URL` remplacent les adresses par défaut
+(serveur de test, par exemple).
+
+Sans marketplace, un thème ou un skill se partage aussi en archive (Bobine l'installe en le marquant « non vérifié »).
+Un plugin non signé ne se charge qu'en mode développeur.
 
 ## Le protocole brut
 
