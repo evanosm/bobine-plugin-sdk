@@ -1,6 +1,6 @@
 # {{name}}
 
-A plugin for [Bobine](https://genez.app/bobine), made with `bobine-plugin-sdk`.
+A plugin for [Bobine](https://genez.app/bobine), made with `@bobine/plugin-sdk`.
 
 ```sh
 pnpm install

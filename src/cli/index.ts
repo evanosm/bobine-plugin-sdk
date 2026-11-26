@@ -152,7 +152,7 @@ async function main(argv: string[]): Promise<number> {
       }
       const cli = sdk.startsWith("file:")
         ? `node ${join(sdkRoot(), "dist/cli.js")}`
-        : "npx --package=bobine-plugin-sdk bobine-plugin";
+        : "npx --package=@bobine/plugin-sdk bobine-plugin";
       const next =
         kind === "plugin"
           ? ["pnpm install", "pnpm build", "pnpm check"]

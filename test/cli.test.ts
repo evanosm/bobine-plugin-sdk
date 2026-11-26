@@ -124,7 +124,7 @@ describe("create", () => {
     const dir = join(temp, "my-plugin");
     create(dir, { id: "someone.my-plugin", sdk: "^0.1.0" });
     const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
-    expect(pkg.devDependencies["bobine-plugin-sdk"]).toBe("^0.1.0");
+    expect(pkg.devDependencies["@bobine/plugin-sdk"]).toBe("^0.1.0");
     expect(() => checkDir(dir)).toThrow(/dist\/main.js/);
     write(dir, { "dist/main.js": "", "dist/panel.html": "" });
     expect(checkDir(dir).manifest.id).toBe("someone.my-plugin");

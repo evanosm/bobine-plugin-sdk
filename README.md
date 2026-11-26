@@ -1,4 +1,4 @@
-# bobine-plugin-sdk
+# @bobine/plugin-sdk
 
 Le kit pour écrire des extensions de [Bobine](https://genez.app/bobine), l'éditeur vidéo de Genez : un client
 TypeScript typé pour parler à Bobine depuis un plugin, et une CLI `bobine-plugin` qui crée, vérifie et empaquette ton
@@ -48,7 +48,7 @@ pnpm dev
 
 `create` écrit un plugin prêt à l'emploi : `bobine.json`, `src/main.ts` (la logique), `src/panel.html` et
 `src/panel.ts` (le panneau), un `build.mjs` (esbuild) et un modèle de CI GitHub Actions. Depuis un clone, la dépendance
-`bobine-plugin-sdk` du plugin pointe vers ce dossier local (`file:`), et la CLI le signale.
+`@bobine/plugin-sdk` du plugin pointe vers ce dossier local (`file:`), et la CLI le signale.
 
 `pnpm dev` explique comment charger le dossier dans Bobine, puis reconstruit à chaque changement :
 
@@ -150,7 +150,7 @@ courts.
 ## Référence de l'API
 
 ```ts
-import { applyTheme, bobine, flicks } from "bobine-plugin-sdk";
+import { applyTheme, bobine, flicks } from "@bobine/plugin-sdk";
 ```
 
 | Appel                                          | Permission      | Renvoie                                                               |
@@ -198,7 +198,7 @@ Exemple complet : [`examples/hello`](examples/hello), qui dit bonjour et propose
 
 ### Sans bundler
 
-`dist/bobine-plugin-sdk.iife.js` (export `bobine-plugin-sdk/iife`) expose tout sur la variable globale `BobineSDK`.
+`dist/bobine-plugin-sdk.iife.js` (export `@bobine/plugin-sdk/iife`) expose tout sur la variable globale `BobineSDK`.
 Dans un panneau, ajoute `<script src="bobine-plugin-sdk.iife.js"></script>` avant ton script, puis
 `const { bobine, applyTheme } = BobineSDK;`. Pour la logique (`main`), Bobine charge un seul fichier, sans module ES :
 colle le contenu du fichier IIFE en tête de ton script, ou passe par un bundler comme le modèle.

@@ -1,5 +1,5 @@
 // Logic of the Hello example: runs in a hidden, sandboxed iframe while the plugin is on.
-import { bobine } from "bobine-plugin-sdk";
+import { bobine } from "@bobine/plugin-sdk";
 import { proposeMarkers } from "./shared";
 
 bobine.command("hello", async () => {

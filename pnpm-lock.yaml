@@ -193,7 +193,7 @@ importers:
 
   examples/hello:
     devDependencies:
-      bobine-plugin-sdk:
+      '@bobine/plugin-sdk':
         specifier: workspace:*
         version: link:../..
       esbuild:

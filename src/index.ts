@@ -3,7 +3,7 @@
  * dans les panneaux d'un plugin (iframe isolée).
  *
  * ```ts
- * import { bobine } from "bobine-plugin-sdk";
+ * import { bobine } from "@bobine/plugin-sdk";
  * bobine.command("hello", () => bobine.ui.notify("ok", "Hello"));
  * ```
  */

@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "types": [],
     "paths": {
-      "bobine-plugin-sdk": ["../../src/index.ts"]
+      "@bobine/plugin-sdk": ["../../src/index.ts"]
     }
   },
   "include": ["src"]

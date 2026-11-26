@@ -1,5 +1,5 @@
 // The panel: a page in the library, in its own sandboxed iframe. Same SDK as the logic.
-import { activeSequence, applyTheme, bobine } from "bobine-plugin-sdk";
+import { activeSequence, applyTheme, bobine } from "@bobine/plugin-sdk";
 
 const count = document.querySelector<HTMLParagraphElement>("#count");
 const hello = document.querySelector<HTMLButtonElement>("#hello");

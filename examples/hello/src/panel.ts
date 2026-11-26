@@ -1,5 +1,5 @@
 // Panel of the Hello example: a summary of the active sequence, kept up to date.
-import { activeSequence, applyTheme, bobine, FLICKS_PER_SECOND } from "bobine-plugin-sdk";
+import { activeSequence, applyTheme, bobine, FLICKS_PER_SECOND } from "@bobine/plugin-sdk";
 import { proposeMarkers, sequenceEnd } from "./shared";
 
 const name = document.querySelector<HTMLHeadingElement>("#name");

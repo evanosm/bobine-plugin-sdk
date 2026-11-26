@@ -5,7 +5,7 @@ import {
   type MarkerColor,
   type PluginCommand,
   type Sequence,
-} from "bobine-plugin-sdk";
+} from "@bobine/plugin-sdk";
 
 /** End of the last clip of the sequence, in flicks. */
 export function sequenceEnd(sequence: Sequence): number {

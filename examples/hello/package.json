@@ -11,7 +11,7 @@
     "dev": "bobine-plugin dev"
   },
   "devDependencies": {
-    "bobine-plugin-sdk": "workspace:*",
+    "@bobine/plugin-sdk": "workspace:*",
     "esbuild": "0.28.2",
     "typescript": "7.0.2"
   }
