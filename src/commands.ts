@@ -456,7 +456,10 @@ export type Command =
     } & SetCrop)
   | ({
       type: "SetCleanVoice";
-    } & SetCleanVoice);
+    } & SetCleanVoice)
+  | ({
+      type: "ReplaceClipMedia";
+    } & ReplaceClipMedia);
 
 /**
  * How existing clips adapt when the sequence size or ratio changes.
@@ -1026,6 +1029,21 @@ export type RemoveTransition = {
 export type RenameSequence = {
   name: string;
   sequence: SequenceId;
+};
+
+/**
+ * Make a video clip show another media (an upscaled or interpolated render of its media, for
+ * example) without moving it: position, duration, speed, properties, keyframes, fades, link
+ * and transitions stay. Only this clip changes: its linked audio keeps playing the original.
+ * `source_in` is where the clip starts in the NEW media. Refused if the clip is not a media
+ * clip on a video track, if the new media has no image, or if it is too short for
+ * `source_in` plus the media the clip plays.
+ * Example: `{clip: "c1", media: "m2", source_in: 0}`.
+ */
+export type ReplaceClipMedia = {
+  clip: ClipId;
+  media: MediaId;
+  source_in: Flicks;
 };
 
 export type RevealEffect = "fade" | "appear" | "pop" | "slide";

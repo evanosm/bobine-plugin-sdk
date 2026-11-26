@@ -31,7 +31,21 @@ export type {
   TransactionResult,
 } from "./project";
 export { activeSequence, FLICKS_PER_SECOND, flicks } from "./project";
-export type { CallMessage, ErrorCode, EventMessage, Method, ResultMessage } from "./protocol";
+export type {
+  CallMessage,
+  EncodeAppended,
+  EncodeAppendRequest,
+  EncodeBeginRequest,
+  EncodeFinished,
+  EncodeSession,
+  ErrorCode,
+  EventMessage,
+  FrameFormat,
+  FramesRequest,
+  FramesResult,
+  Method,
+  ResultMessage,
+} from "./protocol";
 export { FORBIDDEN_COMMANDS, LIMITS, METHODS, PROTOCOL } from "./protocol";
 export type { ThemeTarget } from "./theme";
 export { applyTheme } from "./theme";

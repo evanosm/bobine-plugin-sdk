@@ -1293,6 +1293,19 @@
           "required": [
             "type"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "ReplaceClipMedia"
+            }
+          },
+          "$ref": "#/$defs/ReplaceClipMedia",
+          "required": [
+            "type"
+          ]
         }
       ]
     },
@@ -2596,6 +2609,26 @@
       "required": [
         "sequence",
         "name"
+      ]
+    },
+    "ReplaceClipMedia": {
+      "description": "Make a video clip show another media (an upscaled or interpolated render of its media, for\nexample) without moving it: position, duration, speed, properties, keyframes, fades, link\nand transitions stay. Only this clip changes: its linked audio keeps playing the original.\n`source_in` is where the clip starts in the NEW media. Refused if the clip is not a media\nclip on a video track, if the new media has no image, or if it is too short for\n`source_in` plus the media the clip plays.\nExample: `{clip: \"c1\", media: \"m2\", source_in: 0}`.",
+      "type": "object",
+      "properties": {
+        "clip": {
+          "$ref": "#/$defs/ClipId"
+        },
+        "media": {
+          "$ref": "#/$defs/MediaId"
+        },
+        "source_in": {
+          "$ref": "#/$defs/Flicks"
+        }
+      },
+      "required": [
+        "clip",
+        "media",
+        "source_in"
       ]
     },
     "RevealEffect": {

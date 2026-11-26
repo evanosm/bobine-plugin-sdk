@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { BobineError, createBobine, type PluginWindow } from "../src/client";
+import type { PluginCommand } from "../src/project";
+import { type FramesRequest, METHODS } from "../src/protocol";
 import { applyTheme } from "../src/theme";
 
 type Posted = { message: Record<string, unknown>; origin: string };
@@ -128,6 +130,118 @@ describe("client", () => {
       method: "ui.notify",
       params: { kind: "error", text: "No sequence" },
     });
+  });
+
+  it("sends native.call with the worker method, its params and the timeout", async () => {
+    const { win, posted, receive } = fakeWindow();
+    const bobine = createBobine(() => win);
+    const promise = bobine.native.call<{ ok: boolean }>("track", { clip: "c1" }, { timeout: 300 });
+    expect(posted[0]?.message).toMatchObject({
+      method: "native.call",
+      params: { method: "track", params: { clip: "c1" }, timeout: 300 },
+    });
+    receive({ bobine: 1, kind: "result", id: 1, ok: true, value: { ok: true } });
+    await expect(promise).resolves.toEqual({ ok: true });
+  });
+
+  it("passes the worker's own error code through BobineError", async () => {
+    const { win, receive } = fakeWindow();
+    const bobine = createBobine(() => win);
+    const promise = bobine.native.call("track");
+    receive({
+      bobine: 1,
+      kind: "result",
+      id: 1,
+      ok: false,
+      error: { code: "lost_target", message: "the target left the image" },
+    });
+    const error = await promise.catch((e: unknown) => e);
+    expect((error as BobineError).code).toBe("lost_target");
+  });
+
+  it("sends media.frames with every_frame for a media and returns the paths", async () => {
+    const { win, posted, receive } = fakeWindow();
+    const bobine = createBobine(() => win);
+    const request = {
+      media: "m1",
+      from: 0,
+      to: 1,
+      width: 1920,
+      height: 1080,
+      format: "rgba" as const,
+      every_frame: true as const,
+    };
+    const promise = bobine.media.frames(request);
+    expect(posted[0]?.message).toMatchObject({ method: "media.frames", params: request });
+    const value = {
+      raw: "frames-0.raw",
+      header: "frames-0.json",
+      count: 25,
+      width: 1920,
+      height: 1080,
+    };
+    receive({ bobine: 1, kind: "result", id: 1, ok: true, value });
+    await expect(promise).resolves.toEqual(value);
+  });
+
+  it("runs a render session with media.encode begin, append, finish and cancel", async () => {
+    const { win, posted, receive } = fakeWindow();
+    const bobine = createBobine(() => win);
+    const begin = bobine.media.encode.begin({
+      width: 3840,
+      height: 2160,
+      fps: { num: 25, den: 1 },
+      name: "Plan 4K",
+    });
+    receive({ bobine: 1, kind: "result", id: 1, ok: true, value: { session: "s1" } });
+    const { session } = await begin;
+    const append = bobine.media.encode.append({ session, raw: "out-0.raw" });
+    receive({ bobine: 1, kind: "result", id: 2, ok: true, value: { frames: 25 } });
+    await expect(append).resolves.toEqual({ frames: 25 });
+    const finish = bobine.media.encode.finish({ session });
+    receive({ bobine: 1, kind: "result", id: 3, ok: true, value: { media: "m2" } });
+    await expect(finish).resolves.toEqual({ media: "m2" });
+    const cancel = bobine.media.encode.cancel({ session });
+    receive({ bobine: 1, kind: "result", id: 4, ok: true, value: null });
+    await expect(cancel).resolves.toBeUndefined();
+    expect(posted.map((p) => [p.message.method, p.message.params])).toEqual([
+      [
+        "media.encode.begin",
+        { width: 3840, height: 2160, fps: { num: 25, den: 1 }, name: "Plan 4K" },
+      ],
+      ["media.encode.append", { session: "s1", raw: "out-0.raw" }],
+      ["media.encode.finish", { session: "s1" }],
+      ["media.encode.cancel", { session: "s1" }],
+    ]);
+  });
+
+  it("refuses every_frame with a clip and fps with every_frame at compile time", () => {
+    const box = { width: 640, height: 360, format: "gray" as const };
+    const ok: FramesRequest[] = [
+      { ...box, clip: "c1", fps: 15 },
+      { ...box, media: "m1", every_frame: true, from: 0, to: 2 },
+    ];
+    // @ts-expect-error every_frame only works with media
+    const withClip: FramesRequest = { ...box, clip: "c1", every_frame: true };
+    // @ts-expect-error fps is ignored with every_frame, so it is refused
+    const withFps: FramesRequest = { ...box, media: "m1", every_frame: true, fps: 8 };
+    expect([...ok, withClip, withFps]).toHaveLength(4);
+  });
+
+  it("asks both media:frames and project:write for a render, like Bobine", () => {
+    expect(METHODS["media.encode.begin"]).toEqual(["media:frames", "project:write"]);
+    expect(METHODS["native.call"]).toEqual(["native:worker"]);
+    expect(METHODS["ui.notify"]).toEqual([]);
+  });
+
+  it("lets a plugin send ReplaceClipMedia", () => {
+    const command: PluginCommand = {
+      type: "ReplaceClipMedia",
+      clip: "c1",
+      media: "m2",
+      source_in: 0,
+    };
+    expect(command.type).toBe("ReplaceClipMedia");
   });
 
   it("does not touch window before the first call", () => {

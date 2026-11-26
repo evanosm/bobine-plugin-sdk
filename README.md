@@ -118,12 +118,12 @@ La liste est fermée : une permission inconnue refuse le manifeste.
 | Permission          | Ce qu'elle ouvre dans le protocole 1                                                      |
 | ------------------- | ----------------------------------------------------------------------------------------- |
 | `project:read`      | `project.get`, `selection.get`, l'événement `project`                                     |
-| `project:write`     | `project.dispatch`, `project.propose`                                                     |
-| `media:frames`      | Acceptée par le manifeste, aucune méthode pour l'instant                                  |
+| `project:write`     | `project.dispatch`, `project.propose`, et `media.encode.*` avec `media:frames`            |
+| `media:frames`      | `media.frames`, et `media.encode.*` avec `project:write` (Bobine 0.4.0 ou plus récente)   |
 | `network:<domaine>` | Acceptée par le manifeste, aucune méthode pour l'instant (le bac à sable coupe le réseau) |
-| `native:worker`     | Programme natif hors processus, réservé aux plugins de Genez dans la v1                   |
+| `native:worker`     | `native.call` : programme natif hors processus, réservé aux plugins de Genez dans la v1   |
 
-Bobine vérifie la permission à chaque appel, contre les permissions accordées à l'installation. Sans elle, l'appel
+Bobine vérifie les permissions à chaque appel, contre celles accordées à l'installation. S'il en manque une, l'appel
 échoue avec le code `permission_denied`.
 
 ## Le bac à sable
@@ -153,18 +153,24 @@ courts.
 import { applyTheme, bobine, flicks } from "@bobine/plugin-sdk";
 ```
 
-| Appel                                          | Permission      | Renvoie                                                               |
-| ---------------------------------------------- | --------------- | --------------------------------------------------------------------- |
-| `bobine.project.get()`                         | `project:read`  | Le projet ouvert (`Project`) ou `null`                                |
-| `bobine.selection.get()`                       | `project:read`  | `{ clips: string[], playhead: number }` (tête de lecture en secondes) |
-| `bobine.project.dispatch({ label, commands })` | `project:write` | `{ applied }` : appliqué en une étape annulable                       |
-| `bobine.project.propose({ label, commands })`  | `project:write` | `{ applied }` quand l'utilisateur a choisi                            |
-| `bobine.ui.notify(kind, text)`                 | aucune          | Notification `"info"`, `"ok"` ou `"error"`, préfixée du nom du plugin |
-| `bobine.settings.get()`                        | aucune          | Les valeurs des réglages (défaut du manifeste sinon)                  |
-| `bobine.theme.get()`                           | aucune          | `{ mode: "light" \| "dark", tokens }`                                 |
-| `bobine.on(name, handler)`                     |                 | Abonnement ; renvoie une fonction de désabonnement                    |
-| `bobine.command(id, handler)`                  |                 | Lance `handler` quand la commande `id` est choisie                    |
-| `bobine.call(method, params)`                  |                 | Appel brut d'une méthode du protocole                                 |
+| Appel                                                     | Permission                       | Renvoie                                                               |
+| --------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------- |
+| `bobine.project.get()`                                    | `project:read`                   | Le projet ouvert (`Project`) ou `null`                                |
+| `bobine.selection.get()`                                  | `project:read`                   | `{ clips: string[], playhead: number }` (tête de lecture en secondes) |
+| `bobine.project.dispatch({ label, commands })`            | `project:write`                  | `{ applied }` : appliqué en une étape annulable                       |
+| `bobine.project.propose({ label, commands })`             | `project:write`                  | `{ applied }` quand l'utilisateur a choisi                            |
+| `bobine.ui.notify(kind, text)`                            | aucune                           | Notification `"info"`, `"ok"` ou `"error"`, préfixée du nom du plugin |
+| `bobine.settings.get()`                                   | aucune                           | Les valeurs des réglages (défaut du manifeste sinon)                  |
+| `bobine.theme.get()`                                      | aucune                           | `{ mode: "light" \| "dark", tokens }`                                 |
+| `bobine.native.call(method, params?, { timeout? })`       | `native:worker`                  | Le résultat de la méthode du programme natif                          |
+| `bobine.media.frames(request)`                            | `media:frames`                   | `{ raw, header, count, width, height }` (chemins pour le programme)   |
+| `bobine.media.encode.begin({ width, height, fps, name })` | `media:frames` + `project:write` | `{ session }`                                                         |
+| `bobine.media.encode.append({ session, raw })`            | `media:frames` + `project:write` | `{ frames }` : images encodées depuis le début                        |
+| `bobine.media.encode.finish({ session })`                 | `media:frames` + `project:write` | `{ media }` : le rendu importé dans le projet                         |
+| `bobine.media.encode.cancel({ session })`                 | `media:frames` + `project:write` | Rien : le fichier partiel est supprimé                                |
+| `bobine.on(name, handler)`                                |                                  | Abonnement ; renvoie une fonction de désabonnement                    |
+| `bobine.command(id, handler)`                             |                                  | Lance `handler` quand la commande `id` est choisie                    |
+| `bobine.call(method, params)`                             |                                  | Appel brut d'une méthode du protocole                                 |
 
 `applied` vaut `false` quand Bobine refuse les commandes (l'utilisateur voit pourquoi) ou quand il annule une
 proposition.
@@ -179,8 +185,55 @@ proposition.
 | `theme`    | `{ mode, tokens }` | Le thème a changé, et à l'ouverture d'un panneau                                                                       |
 
 Erreurs : un appel refusé rejette sa promesse avec une `BobineError`, dont `code` vaut `unknown_method`,
-`permission_denied`, `invalid_params`, `forbidden_command`, `rate_limited` ou `failed`. Avec `bobine.command`, une
-erreur du handler s'affiche dans Bobine en notification d'erreur.
+`permission_denied`, `invalid_params`, `forbidden_command`, `rate_limited` ou `failed`, plus les codes du programme
+natif et des images ci-dessous (le type `ErrorCode` les liste tous). Avec `bobine.command`, une erreur du handler
+s'affiche dans Bobine en notification d'erreur.
+
+### Programme natif, images et rendus
+
+Réservé aux plugins de Genez dans la v1 (un programme natif n'est publié que par un compte admin de la marketplace),
+avec Bobine 0.4.0 ou plus récente. Le programme natif (`native` du manifeste) tourne hors de l'iframe, avec un dossier
+de travail à lui ; il ne lit aucun fichier du projet et n'embarque pas FFmpeg : Bobine décode et encode pour lui.
+
+- `native.call(method, params, { timeout })` envoie `{ method, params }` au programme et renvoie son `result`.
+  `timeout` en secondes : 60 par défaut, 600 au plus (au-delà, le programme est tué). Paramètres : 1 Mo de JSON au
+  plus. Un appel à la fois par plugin. Une erreur du programme arrive avec son propre `code`.
+- `media.frames(request)` décode un média (`media`, temps du média) OU un clip (`clip`, secondes depuis son début),
+  `from` et `to` en secondes (tout par défaut, `to` exclu), dans une boîte `width` × `height` (proportions gardées,
+  jamais agrandie, 1920 au plus), `format` `"gray"` (1 octet par pixel) ou `"rgba"` (4). `fps` : 8 par défaut, 30 au
+  plus. `every_frame: true` (avec `media` seulement, sans `fps`) rend CHAQUE image décodée dont l'instant est dans
+  `[from, to)` : des lots consécutifs (`to` de l'un = `from` du suivant) ne se recouvrent pas. Un lot dépasse au plus
+  512 Mo et 20 000 images. Réponse : `raw` (images bout à bout, ligne par ligne) et `header` (JSON : `count`,
+  `width`, `height`, `format`, `fps`, `every_frame`, `bytes_per_frame`, `timestamps` en secondes), chemins relatifs
+  au dossier de travail, à passer au programme. Bobine garde les deux derniers lots.
+- `media.encode.*` : le programme écrit des images RGBA bout à bout dans son dossier de travail ; Bobine les encode en
+  ProRes 422 (`.mov` sans son, rangé dans `<Vidéos>/Bobine/Rendus/`) puis importe le fichier, car un plugin ne peut
+  pas envoyer `ImportMedia`. `begin` : côtés pairs, 8192 au plus, aire ≤ 8192 × 4320, `fps` `{ num, den }` ≤ 240, un
+  nom non vide. `append` : `raw` relatif au dossier de travail, taille multiple de `width × height × 4`, supprimé
+  ensuite (même en cas d'erreur). `finish` : une étape d'historique « <plugin> : importer le rendu « <nom> » », renvoie
+  l'id du média. Une session à la fois par plugin ; désactiver ou désinstaller le plugin l'annule.
+- La commande `ReplaceClipMedia { clip, media, source_in }` fait lire au clip le média rendu (propriétés, keyframes,
+  lien et transitions gardés) : à proposer avec `project.propose`.
+
+| Code              | Quand                                                                          |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `not_allowed`     | Plugin désactivé ou incompatible, permission retirée, signature invalide       |
+| `no_worker`       | Pas de programme natif pour cette plateforme                                   |
+| `spawn_failed`    | Le programme n'a pas pu être lancé                                             |
+| `busy`            | Un appel natif, ou un rendu, est déjà en cours pour ce plugin                  |
+| `timeout`         | Délai dépassé : le programme est tué                                           |
+| `worker_crashed`  | Le programme s'est arrêté pendant l'appel (relancé au suivant)                 |
+| `stopped`         | Le plugin a été arrêté pendant l'appel (désactivé, désinstallé, app fermée)    |
+| `worker_error`    | Le programme a renvoyé un code illisible                                       |
+| `not_ready`       | `media.frames` : le média est encore en cours d'analyse                        |
+| `no_video`        | `media.frames` : le média n'a pas d'image                                      |
+| `decode_failed`   | `media.frames` : le média n'a pas pu être décodé                               |
+| `no_frames`       | Aucune image dans l'intervalle, ou `finish` sans image (le rendu est supprimé) |
+| `too_many_frames` | Lot de plus de 512 Mo ou 20 000 images : demander moins                        |
+| `write_failed`    | Écriture impossible (dossier de travail ou des rendus)                         |
+| `unknown_session` | Session de rendu inconnue ou fermée                                            |
+| `encode_failed`   | L'encodeur a échoué                                                            |
+| `import_failed`   | Le rendu n'a pas pu être importé (il est supprimé)                             |
 
 Autres exports :
 
@@ -294,7 +347,8 @@ Réponse, à accepter seulement si `event.source === window.parent` :
 ```
 
 Méthodes : `project.get`, `selection.get`, `project.dispatch`, `project.propose`, `ui.notify` (`{ kind, text }`),
-`settings.get`, `theme.get`. Un client minimal :
+`settings.get`, `theme.get`, `native.call` (`{ method, params, timeout }`), `media.frames`, `media.encode.begin`,
+`media.encode.append`, `media.encode.finish`, `media.encode.cancel` (réponse `null`). Un client minimal :
 
 ```js
 let next = 1;

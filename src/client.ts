@@ -1,5 +1,18 @@
 import type { PluginTransaction, Project, Selection, TransactionResult } from "./project";
-import { type ErrorCode, isEvent, isResult, type Method, PROTOCOL } from "./protocol";
+import {
+  type EncodeAppended,
+  type EncodeAppendRequest,
+  type EncodeBeginRequest,
+  type EncodeFinished,
+  type EncodeSession,
+  type ErrorCode,
+  type FramesRequest,
+  type FramesResult,
+  isEvent,
+  isResult,
+  type Method,
+  PROTOCOL,
+} from "./protocol";
 
 /** Valeurs des réglages déclarés dans `contributes.settings` du manifeste. */
 export type SettingsValues = Record<string, boolean | number | string>;
@@ -138,6 +151,40 @@ export function createBobine(getWindow: () => PluginWindow = () => window) {
     theme: {
       /** Couleurs et rayons du thème actif. */
       get: () => call("theme.get") as Promise<Theme>,
+    },
+    native: {
+      /**
+       * Appelle la méthode `method` du programme natif du plugin (permission `native:worker`) et
+       * renvoie son résultat. `timeout` en secondes : 60 par défaut, 600 au plus ; au-delà, le
+       * programme est tué (`timeout`). Un appel à la fois par plugin (`busy`).
+       */
+      call: <T = unknown>(method: string, params?: unknown, options?: { timeout?: number }) =>
+        call("native.call", { method, params, timeout: options?.timeout }) as Promise<T>,
+    },
+    media: {
+      /**
+       * Décode les images d'un média ou d'un clip dans le dossier de travail du programme natif
+       * (permission `media:frames`) ; les chemins renvoyés sont à lui passer.
+       */
+      frames: (request: FramesRequest) => call("media.frames", request) as Promise<FramesResult>,
+      /**
+       * Rendu ProRes 422 (`.mov` sans son) d'images RGBA écrites par le programme natif, importé
+       * dans le projet à la fin (permissions `media:frames` et `project:write`). Une session à la
+       * fois par plugin.
+       */
+      encode: {
+        begin: (request: EncodeBeginRequest) =>
+          call("media.encode.begin", request) as Promise<EncodeSession>,
+        append: (request: EncodeAppendRequest) =>
+          call("media.encode.append", request) as Promise<EncodeAppended>,
+        /** Ferme le fichier et l'importe (une étape d'historique) : renvoie l'id du média. */
+        finish: (request: EncodeSession) =>
+          call("media.encode.finish", request) as Promise<EncodeFinished>,
+        /** Abandonne le rendu : le fichier partiel est supprimé. */
+        cancel: async (request: EncodeSession): Promise<void> => {
+          await call("media.encode.cancel", request);
+        },
+      },
     },
     on,
     /**

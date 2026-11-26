@@ -24,7 +24,7 @@ export function defaultSdkSpec(root = sdkRoot()): string {
     : `file:${root.replaceAll("\\", "/")}`;
 }
 
-/** Plage npm de cette version du SDK (`^0.1.0`), utilisée par les modèles de CI. */
+/** Plage npm de cette version du SDK (`^0.2.0` pour la 0.2.0), utilisée par les modèles de CI. */
 export function publishedRange(root = sdkRoot()): string {
   const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
     version: string;
