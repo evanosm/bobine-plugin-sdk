@@ -12,6 +12,8 @@ import {
   isResult,
   type Method,
   PROTOCOL,
+  type Thumbnail,
+  type ThumbnailRequest,
 } from "./protocol";
 
 /** Valeurs des réglages déclarés dans `contributes.settings` du manifeste. */
@@ -35,6 +37,18 @@ export type Events = {
   settings: SettingsValues;
   /** Le thème de Bobine a changé (et à l'ouverture d'un panneau). */
   theme: Theme;
+  /**
+   * La sélection ou la tête de lecture a changé (seulement avec `project:read`), au plus une fois
+   * par 150 ms : mêmes données que `selection.get()`.
+   */
+  selection: Selection;
+  /** Message envoyé par une autre iframe du même plugin avec `post` (panneau ↔ logique). */
+  message: unknown;
+  /**
+   * Progression de l'appel natif en cours (0 à 1, ou `null` : inconnue), telle que le programme
+   * la donne ; la barre des tâches de fond de Bobine montre la même.
+   */
+  progress: { value: number | null };
 };
 
 export type EventName = keyof Events;
@@ -160,6 +174,14 @@ export function createBobine(getWindow: () => PluginWindow = () => window) {
        */
       call: <T = unknown>(method: string, params?: unknown, options?: { timeout?: number }) =>
         call("native.call", { method, params, timeout: options?.timeout }) as Promise<T>,
+      /**
+       * Arrête le programme natif (bouton Annuler) : l'appel en cours échoue en `stopped`, le rendu
+       * ouvert (`media.encode`) est annulé et son fichier partiel supprimé. Le prochain appel
+       * relance le programme.
+       */
+      stop: async (): Promise<void> => {
+        await call("native.stop");
+      },
     },
     media: {
       /**
@@ -167,6 +189,12 @@ export function createBobine(getWindow: () => PluginWindow = () => window) {
        * (permission `media:frames`) ; les chemins renvoyés sont à lui passer.
        */
       frames: (request: FramesRequest) => call("media.frames", request) as Promise<FramesResult>,
+      /**
+       * Vignette d'un média à un instant (permission `media:frames`), pour un panneau : les
+       * vignettes de l'app, mises en cache, sans passer par le programme natif.
+       */
+      thumbnail: (request: ThumbnailRequest) =>
+        call("media.thumbnail", request) as Promise<Thumbnail>,
       /**
        * Rendu ProRes 422 (`.mov` sans son) d'images RGBA écrites par le programme natif, importé
        * dans le projet à la fin (permissions `media:frames` et `project:write`). Une session à la
@@ -187,6 +215,13 @@ export function createBobine(getWindow: () => PluginWindow = () => window) {
       },
     },
     on,
+    /**
+     * Envoie `data` (JSON, 64 Ko au plus) aux AUTRES iframes du plugin, reçu en événement
+     * `message` : un panneau demande un calcul à la logique, qui survit à sa fermeture.
+     */
+    async post(data: unknown): Promise<void> {
+      await call("plugin.post", data);
+    },
     /**
      * Lance `handler` quand la commande `id` (déclarée dans `contributes.commands`) est choisie.
      * Une erreur du handler s'affiche dans Bobine en notification d'erreur.

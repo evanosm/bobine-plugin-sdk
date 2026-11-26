@@ -36,7 +36,10 @@ export const METHODS = {
   "settings.get": [],
   "theme.get": [],
   "native.call": ["native:worker"],
+  "native.stop": ["native:worker"],
   "media.frames": ["media:frames"],
+  "media.thumbnail": ["media:frames"],
+  "plugin.post": [],
   "media.encode.begin": ["media:frames", "project:write"],
   "media.encode.append": ["media:frames", "project:write"],
   "media.encode.finish": ["media:frames", "project:write"],
@@ -157,6 +160,15 @@ export type FramesResult = {
   width: number;
   height: number;
 };
+
+/**
+ * Paramètres de `media.thumbnail` : un média du projet, un instant du média (secondes), la
+ * hauteur voulue (de 16 à 256 ; la largeur suit les proportions).
+ */
+export type ThumbnailRequest = { media: string; time: number; height: number };
+
+/** Réponse de `media.thumbnail` : octets RGBA (largeur × hauteur × 4) en base64. */
+export type Thumbnail = { width: number; height: number; rgba_base64: string };
 
 /** Paramètres de `media.encode.begin` : taille (côtés pairs), cadence, nom du fichier sans extension. */
 export type EncodeBeginRequest = {

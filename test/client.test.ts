@@ -159,6 +159,46 @@ describe("client", () => {
     expect((error as BobineError).code).toBe("lost_target");
   });
 
+  it("asks a media thumbnail for a panel and returns its RGBA pixels", async () => {
+    const { win, posted, receive } = fakeWindow();
+    const bobine = createBobine(() => win);
+    const promise = bobine.media.thumbnail({ media: "m1", time: 2.5, height: 180 });
+    expect(posted[0]?.message).toMatchObject({
+      method: "media.thumbnail",
+      params: { media: "m1", time: 2.5, height: 180 },
+    });
+    const value = { width: 320, height: 180, rgba_base64: "AAAA" };
+    receive({ bobine: 1, kind: "result", id: 1, ok: true, value });
+    await expect(promise).resolves.toEqual(value);
+  });
+
+  it("posts a message to the plugin's other frames and receives theirs as events", async () => {
+    const { win, posted, receive } = fakeWindow();
+    const bobine = createBobine(() => win);
+    const seen: unknown[] = [];
+    bobine.on("message", (data) => seen.push(data));
+    const sent = bobine.post({ type: "run" });
+    expect(posted[0]?.message).toMatchObject({ method: "plugin.post", params: { type: "run" } });
+    receive({ bobine: 1, kind: "result", id: 1, ok: true, value: null });
+    await sent;
+    receive({ bobine: 1, kind: "event", name: "message", data: { type: "status", busy: true } });
+    receive({ bobine: 1, kind: "event", name: "selection", data: { clips: ["c1"], playhead: 3 } });
+    expect(seen).toEqual([{ type: "status", busy: true }]);
+  });
+
+  it("stops the native program on request and passes its progress as an event", async () => {
+    const { win, posted, receive } = fakeWindow();
+    const bobine = createBobine(() => win);
+    const seen: unknown[] = [];
+    bobine.on("progress", (data) => seen.push(data.value));
+    const stopped = bobine.native.stop();
+    expect(posted[0]?.message).toMatchObject({ method: "native.stop" });
+    receive({ bobine: 1, kind: "result", id: 1, ok: true, value: null });
+    await stopped;
+    receive({ bobine: 1, kind: "event", name: "progress", data: { value: 0.25 } });
+    expect(seen).toEqual([0.25]);
+  });
+
   it("sends media.frames with every_frame for a media and returns the paths", async () => {
     const { win, posted, receive } = fakeWindow();
     const bobine = createBobine(() => win);

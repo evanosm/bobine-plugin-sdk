@@ -45,6 +45,8 @@ export type {
   FramesResult,
   Method,
   ResultMessage,
+  Thumbnail,
+  ThumbnailRequest,
 } from "./protocol";
 export { FORBIDDEN_COMMANDS, LIMITS, METHODS, PROTOCOL } from "./protocol";
 export type { ThemeTarget } from "./theme";
