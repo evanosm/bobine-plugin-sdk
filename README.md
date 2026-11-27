@@ -118,7 +118,7 @@ La liste est fermée : une permission inconnue refuse le manifeste.
 | Permission          | Ce qu'elle ouvre dans le protocole 1                                                      |
 | ------------------- | ----------------------------------------------------------------------------------------- |
 | `project:read`      | `project.get`, `selection.get`, l'événement `project`                                     |
-| `project:write`     | `project.dispatch`, `project.propose`, et `media.encode.*` avec `media:frames`            |
+| `project:write`     | `project.dispatch`, `project.propose`, `project.null.create`, et `media.encode.*` avec `media:frames` |
 | `media:frames`      | `media.frames`, et `media.encode.*` avec `project:write` (Bobine 0.4.0 ou plus récente)   |
 | `network:<domaine>` | Acceptée par le manifeste, aucune méthode pour l'instant (le bac à sable coupe le réseau) |
 | `native:worker`     | `native.call` : programme natif hors processus, réservé aux plugins de Genez dans la v1   |
@@ -164,7 +164,8 @@ import { applyTheme, bobine, flicks } from "@bobine/plugin-sdk";
 | `bobine.theme.get()`                                      | aucune                           | `{ mode: "light" \| "dark", tokens }`                                 |
 | `bobine.native.call(method, params?, { timeout? })`       | `native:worker`                  | Le résultat de la méthode du programme natif                          |
 | `bobine.media.frames(request)`                            | `media:frames`                   | `{ raw, header, count, width, height }` (chemins pour le programme)   |
-| `bobine.media.encode.begin({ width, height, fps, name })` | `media:frames` + `project:write` | `{ session }`                                                         |
+| `bobine.project.createNull({ label, at, keys?, children? })` | `project:write` | `{ applied, null }` : un objet nul proposé (Bobine 0.5 ou plus récente) |
+| `bobine.media.encode.begin({ width, height, fps, name, frames? })` | `media:frames` + `project:write` | `{ session }` |
 | `bobine.media.encode.append({ session, raw })`            | `media:frames` + `project:write` | `{ frames }` : images encodées depuis le début                        |
 | `bobine.media.encode.finish({ session })`                 | `media:frames` + `project:write` | `{ media }` : le rendu importé dans le projet                         |
 | `bobine.media.encode.cancel({ session })`                 | `media:frames` + `project:write` | Rien : le fichier partiel est supprimé                                |
@@ -209,11 +210,22 @@ de travail à lui ; il ne lit aucun fichier du projet et n'embarque pas FFmpeg :
 - `media.encode.*` : le programme écrit des images RGBA bout à bout dans son dossier de travail ; Bobine les encode en
   ProRes 422 (`.mov` sans son, rangé dans `<Vidéos>/Bobine/Rendus/`) puis importe le fichier, car un plugin ne peut
   pas envoyer `ImportMedia`. `begin` : côtés pairs, 8192 au plus, aire ≤ 8192 × 4320, `fps` `{ num, den }` ≤ 240, un
-  nom non vide. `append` : `raw` relatif au dossier de travail, taille multiple de `width × height × 4`, supprimé
+  nom non vide, et `frames` facultatif (images prévues : Bobine 0.5 refuse d'emblée en `disk_full` un rendu sans
+  place, une version plus ancienne l'ignore). `append` : `raw` relatif au dossier de travail, taille multiple de `width × height × 4`, supprimé
   ensuite (même en cas d'erreur). `finish` : une étape d'historique « <plugin> : importer le rendu « <nom> » », renvoie
   l'id du média. Une session à la fois par plugin ; désactiver ou désinstaller le plugin l'annule.
 - La commande `ReplaceClipMedia { clip, media, source_in }` fait lire au clip le média rendu (propriétés, keyframes,
   lien et transitions gardés) : à proposer avec `project.propose`.
+
+### Objets nuls (Bobine 0.5)
+
+`bobine.project.createNull({ label, at, duration?, keys?, children?, parentAt? })` propose, en une seule étape, un
+objet nul (clip invisible, jamais rendu) posé à `at` sur une piste vidéo libre (créée si besoin), animé par `keys`
+(`CopiedKeyframe`, temps relatifs à son début, comme `PasteKeyframes`), et les clips `children` liés à lui : ils
+gardent leur image à `parentAt` (leur début par défaut) puis suivent son mouvement. Temps en flicks. Réponse :
+`{ applied, null }`, `null` étant l'id du clip nul. Une version plus ancienne de Bobine répond `unknown_method` : un
+plugin qui vise aussi la 0.4 le détecte à l'exécution. Les commandes `AddNull`, `SetParent` et `ClearParent` sont aussi
+permises dans `project.dispatch` et `project.propose`.
 
 | Code              | Quand                                                                          |
 | ----------------- | ------------------------------------------------------------------------------ |
@@ -234,6 +246,8 @@ de travail à lui ; il ne lit aucun fichier du projet et n'embarque pas FFmpeg :
 | `unknown_session` | Session de rendu inconnue ou fermée                                            |
 | `encode_failed`   | L'encodeur a échoué                                                            |
 | `import_failed`   | Le rendu n'a pas pu être importé (il est supprimé)                             |
+| `disk_full` | Disque plein (Bobine 0.5) : rendu refusé d'emblée si `begin` a reçu `frames`, ou interrompu |
+| `no_sequence` | `project.null.create` : aucune séquence ouverte |
 
 Autres exports :
 
@@ -346,7 +360,7 @@ Réponse, à accepter seulement si `event.source === window.parent` :
 { bobine: 1, kind: "event", name: "command", data: { id: "hello" } }
 ```
 
-Méthodes : `project.get`, `selection.get`, `project.dispatch`, `project.propose`, `ui.notify` (`{ kind, text }`),
+Méthodes : `project.get`, `selection.get`, `project.dispatch`, `project.propose`, `project.null.create`, `ui.notify` (`{ kind, text }`),
 `settings.get`, `theme.get`, `native.call` (`{ method, params, timeout }`), `media.frames`, `media.encode.begin`,
 `media.encode.append`, `media.encode.finish`, `media.encode.cancel` (réponse `null`). Un client minimal :
 

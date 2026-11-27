@@ -1,6 +1,6 @@
 {
   "name": "@bobine/plugin-sdk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "SDK et CLI pour écrire des plugins, thèmes et skills pour Bobine, l'éditeur vidéo de Genez.",
   "keywords": [
     "bobine",

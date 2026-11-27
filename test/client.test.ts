@@ -284,6 +284,51 @@ describe("client", () => {
     expect(command.type).toBe("ReplaceClipMedia");
   });
 
+  it("proposes a null object with project.null.create and returns its clip id", async () => {
+    const { win, posted, receive } = fakeWindow();
+    const bobine = createBobine(() => win);
+    const request = {
+      label: "Suivi",
+      at: 0,
+      keys: [
+        {
+          prop: "position" as const,
+          offset: 0,
+          value: { x: 10, y: 20 },
+          easing: { type: "linear" as const },
+        },
+      ],
+      children: ["title"],
+    };
+    const made = bobine.project.createNull(request);
+    expect(posted[0]?.message).toMatchObject({ method: "project.null.create", params: request });
+    receive({ bobine: 1, kind: "result", id: 1, ok: true, value: { applied: true, null: "n1" } });
+    await expect(made).resolves.toEqual({ applied: true, null: "n1" });
+    expect(METHODS["project.null.create"]).toEqual(["project:write"]);
+  });
+
+  it("lets a plugin send AddNull, SetParent and ClearParent", () => {
+    const commands: PluginCommand[] = [
+      { type: "AddNull", id: "n1", track: "v2", at: 0, duration: null },
+      { type: "SetParent", clips: ["title"], parent: "n1", at: null },
+      { type: "ClearParent", clips: ["title"] },
+    ];
+    expect(commands.map((c) => c.type)).toEqual(["AddNull", "SetParent", "ClearParent"]);
+  });
+
+  it("sends the planned frame count with media.encode.begin when given", () => {
+    const { win, posted } = fakeWindow();
+    const bobine = createBobine(() => win);
+    void bobine.media.encode.begin({
+      width: 1920,
+      height: 1080,
+      fps: { num: 30, den: 1 },
+      name: "Flou",
+      frames: 90,
+    });
+    expect(posted[0]?.message.params).toMatchObject({ frames: 90 });
+  });
+
   it("does not touch window before the first call", () => {
     const getWindow = vi.fn(() => fakeWindow().win);
     createBobine(getWindow);

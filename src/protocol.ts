@@ -1,3 +1,5 @@
+import type { CopiedKeyframe, Flicks } from "./commands";
+
 /**
  * Protocole 1 entre un plugin (dans son iframe isolée) et Bobine. Le SDK n'est qu'un client de ce
  * protocole : tout ce qu'il fait, un plugin peut le faire à la main avec `postMessage`.
@@ -32,6 +34,7 @@ export const METHODS = {
   "selection.get": ["project:read"],
   "project.propose": ["project:write"],
   "project.dispatch": ["project:write"],
+  "project.null.create": ["project:write"],
   "ui.notify": [],
   "settings.get": [],
   "theme.get": [],
@@ -86,6 +89,8 @@ export type ErrorCode =
   | "forbidden_command"
   | "rate_limited"
   | "failed"
+  /** Aucune séquence ouverte (`project.null.create`, Bobine 0.5). */
+  | "no_sequence"
   // Programme natif (`native.call`, et les conditions revérifiées par `media.*`).
   /** Plugin désactivé, incompatible, permission retirée ou signature invalide. */
   | "not_allowed"
@@ -116,6 +121,11 @@ export type ErrorCode =
   | "too_many_frames"
   /** Écriture impossible dans le dossier de travail ou celui des rendus. */
   | "write_failed"
+  /**
+   * Disque plein (Bobine 0.5) : rendu refusé d'emblée quand `media.encode.begin` reçoit `frames`,
+   * ou écriture interrompue ; le fichier partiel est supprimé.
+   */
+  | "disk_full"
   // Rendu (`media.encode.*`).
   /** Session inconnue ou déjà fermée. */
   | "unknown_session"
@@ -176,7 +186,33 @@ export type EncodeBeginRequest = {
   height: number;
   fps: { num: number; den: number };
   name: string;
+  /**
+   * Nombre d'images prévu (facultatif, Bobine 0.5) : le rendu est refusé d'emblée en `disk_full`
+   * si le disque n'a pas la place. Une version plus ancienne l'ignore.
+   */
+  frames?: number;
 };
+
+/**
+ * Paramètres de `project.null.create` (Bobine 0.5) : temps en flicks, comme les commandes. Le nul
+ * est posé sur une piste vidéo libre à `at` (créée si besoin), d'une image fixe de durée par
+ * défaut ; `keys` l'animent (temps relatifs à son début, comme `PasteKeyframes`) ; `children` sont
+ * les clips à lier, qui gardent leur image à `parentAt` (début de chaque clip par défaut).
+ */
+export type NullRequest = {
+  label: string;
+  at: Flicks;
+  duration?: Flicks;
+  keys?: CopiedKeyframe[];
+  children?: string[];
+  parentAt?: Flicks;
+};
+
+/**
+ * Réponse de `project.null.create` : `applied` comme une proposition, `null` = l'id du clip nul
+ * (prévu même si l'utilisateur annule).
+ */
+export type NullCreated = { applied: boolean; null: string };
 
 /** Réponse de `media.encode.begin`, à passer aux trois autres méthodes. */
 export type EncodeSession = { session: string };

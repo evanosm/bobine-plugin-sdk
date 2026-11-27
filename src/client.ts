@@ -11,6 +11,8 @@ import {
   isEvent,
   isResult,
   type Method,
+  type NullCreated,
+  type NullRequest,
   PROTOCOL,
   type Thumbnail,
   type ThumbnailRequest,
@@ -152,6 +154,13 @@ export function createBobine(getWindow: () => PluginWindow = () => window) {
        * (permission `project:write`). La promesse attend sa réponse.
        */
       propose: (tx: PluginTransaction) => call("project.propose", tx) as Promise<TransactionResult>,
+      /**
+       * Propose un objet nul (Bobine 0.5, permission `project:write`) : posé à `at`, animé par
+       * `keys`, `children` liés à lui, en une proposition sur la timeline. Une version plus
+       * ancienne répond `unknown_method`.
+       */
+      createNull: (request: NullRequest) =>
+        call("project.null.create", request) as Promise<NullCreated>,
     },
     selection: {
       /** Clips sélectionnés et tête de lecture en secondes (permission `project:read`). */

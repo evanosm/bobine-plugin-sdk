@@ -44,6 +44,8 @@ export type {
   FramesRequest,
   FramesResult,
   Method,
+  NullCreated,
+  NullRequest,
   ResultMessage,
   Thumbnail,
   ThumbnailRequest,
